@@ -120,6 +120,15 @@ type FetchTicket = { key: CacheKey; generation: number; previous: CacheEntry | u
 - **Tag index** (`tag → keys`) lives in QueryCache memory, as do valid tickets: runtime bookkeeping, not data.
 - The query layer's dedupe map must also drop the shared promise on invalidate (see `query/inflight.ts`).
 
+### Cache keys
+
+`createCacheKey(name, parts)` → `name:` + stable JSON (object keys sorted recursively, `undefined` dropped, array order kept).
+
+- **Readable JSON keys everywhere** — memory and persisted storage, dev and production alike. No hashing, no dev/prod branching (tests must exercise the same path as production).
+- What goes into the key: `name` (defaults to `METHOD url`), `query`, `body`, and only the headers listed in `keyHeaders` (default none — `Authorization`, request ids and middleware-added headers would break dedupe and caching).
+- Non-serializable bodies (`FormData`, `Blob`, `ArrayBuffer`) get no key: the query bypasses cache and dedupe (dev warning). Mutations never dedupe.
+- **Why not hash keys?** Considered and rejected (Nov 2026): hashing only hides the key while the persisted entry still holds the response data in plain text, and one-way hashes make hydrate unable to restore original keys or rebuild the tag index. Sensitive data is protected by **encrypting the storage** (MMKV `encryptionKey`, jubako `secure` layer). Revisit only if a storage backend imposes a key-length limit — it is a one-function change.
+
 ### Flows
 
 | Scenario | Store entry over time |
