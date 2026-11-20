@@ -1,0 +1,90 @@
+{
+  "name": "@watari/middlewares",
+  "version": "0.0.0",
+  "description": "Common middlewares for watari (auth refresh, retry, ...).",
+  "main": "./lib/commonjs/index.js",
+  "module": "./lib/module/index.js",
+  "types": "./lib/typescript/commonjs/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": {
+        "types": "./lib/typescript/module/index.d.ts",
+        "default": "./lib/module/index.js"
+      },
+      "require": {
+        "types": "./lib/typescript/commonjs/index.d.ts",
+        "default": "./lib/commonjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "lib",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "watari",
+    "fetch",
+    "react",
+    "react-native",
+    "cache"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dangttp97/watari.git",
+    "directory": "packages/middlewares"
+  },
+  "author": "Trần Thành Phương Đăng (https://github.com/dangttp97)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dangttp97/watari/issues"
+  },
+  "homepage": "https://github.com/dangttp97/watari#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "bob build",
+    "clean": "del-cli lib"
+  },
+  "peerDependencies": {
+    "@watari/core": "workspace:^"
+  },
+  "devDependencies": {
+    "@watari/core": "workspace:^",
+    "del-cli": "^6.0.0",
+    "react-native-builder-bob": "^0.40.17",
+    "typescript": "^5.9.2"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "commonjs",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "./tsconfig.build.json",
+          "tsc": "../../node_modules/typescript/bin/tsc"
+        }
+      ]
+    ]
+  }
+}
