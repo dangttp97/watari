@@ -3,14 +3,19 @@ export type Tag = string;
 
 export type CacheStatus = 'idle' | 'loading' | 'success' | 'error';
 
-export type CacheEntry<T> = {
+export type CacheEntry<T = unknown> = {
   status: CacheStatus;
   data?: T;
-  error?: Error;
-  expiresAt?: number;
+  error?: Error | unknown;
+  invalidated?: boolean;
   updatedAt?: number;
-  tags?: Tag[];
-  version?: number;
+  tags?: readonly Tag[];
+};
+
+export type FetchTicket = {
+  readonly key: string;
+  readonly generation: number;
+  readonly previous: CacheEntry | undefined;
 };
 
 export type CacheStore = {
