@@ -46,10 +46,10 @@ export default function App() {
   }, []);
 
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', padding: 24 }}>
+    <main>
       <h1>watari · React</h1>
       {error ? (
-        <p style={{ color: 'crimson' }}>{error}</p>
+        <p>{error}</p>
       ) : (
         <pre>{JSON.stringify(collections, null, 2)}</pre>
       )}

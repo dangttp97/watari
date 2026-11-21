@@ -49,38 +49,43 @@ packages/core/src/
 ## Contracts
 
 ```ts
-type Transport  = (request: TransportRequest) => Promise<TransportResponse>;
-type NextFn     = Transport;
-type Middleware = (request: TransportRequest, next: NextFn) => Promise<TransportResponse>;
-type Plugin     = (client: Client) => () => void;   // returns cleanup
+type Transport = (request: TransportRequest) => Promise<TransportResponse>;
+type NextFn = Transport;
+type Middleware = (
+  request: TransportRequest,
+  next: NextFn
+) => Promise<TransportResponse>;
+type Plugin = (client: Client) => () => void; // returns cleanup
 
-interface TransportResponse {         // minimal on purpose: a native transport can implement it
+interface TransportResponse {
+  // minimal on purpose: a native transport can implement it
   status: number;
   statusText: string;
   url: string;
-  headers: RequestHeaders;            // lower-cased keys
+  headers: RequestHeaders; // lower-cased keys
   text(): Promise<string>;
   json<T = unknown>(): Promise<T>;
   arrayBuffer(): Promise<ArrayBuffer>;
 }
 
-interface CacheStore {                // synchronous reads for useSyncExternalStore
+interface CacheStore {
+  // synchronous reads for useSyncExternalStore
   get<T = unknown>(key: string): CacheEntry<T> | undefined;
   set<T = unknown>(key: string, entry: CacheEntry<T>): void;
   delete(key: string): void;
   keys(): string[];
-  subscribe(key: string, callback: () => void): () => void;   // returns unsubscribe
+  subscribe(key: string, callback: () => void): () => void; // returns unsubscribe
 }
 ```
 
 Four extension points — core knows nothing about React Native, Redux or jubako:
 
-| Extension point | Examples |
-|---|---|
-| `transport` | `fetchTransport` (default), `@watari/native` (OkHttp / URLSession) |
-| `middlewares` | `retry`, `auth401`, `logger`, app-specific error mapping |
-| `store` | memory, `@watari/redux`, `@watari/zustand`, `withPersist(store, jubako)` |
-| `plugins` | `refetchOnFocus(AppState)`, `onlineManager(NetInfo)` |
+| Extension point | Examples                                                                 |
+| --------------- | ------------------------------------------------------------------------ |
+| `transport`     | `fetchTransport` (default), `@watari/native` (OkHttp / URLSession)       |
+| `middlewares`   | `retry`, `auth401`, `logger`, app-specific error mapping                 |
+| `store`         | memory, `@watari/redux`, `@watari/zustand`, `withPersist(store, jubako)` |
+| `plugins`       | `refetchOnFocus(AppState)`, `onlineManager(NetInfo)`                     |
 
 ## Transport & pipeline notes
 
@@ -105,12 +110,16 @@ type CacheEntry<T = unknown> = {
   status: 'idle' | 'loading' | 'success' | 'error';
   data?: T;
   error?: unknown;
-  updatedAt?: number;             // last successful fetch
-  tags?: readonly Tag[];          // kept in the entry so the tag index can be rebuilt after hydrate
+  updatedAt?: number; // last successful fetch
+  tags?: readonly Tag[]; // kept in the entry so the tag index can be rebuilt after hydrate
   isInvalidated?: boolean;
 };
 
-type FetchTicket = { key: CacheKey; generation: number; previous: CacheEntry | undefined };
+type FetchTicket = {
+  key: CacheKey;
+  generation: number;
+  previous: CacheEntry | undefined;
+};
 ```
 
 - **Freshness is computed on read** (`now - updatedAt < staleTime`, `status === 'success'`, not invalidated), never stored.
@@ -131,15 +140,15 @@ type FetchTicket = { key: CacheKey; generation: number; previous: CacheEntry | u
 
 ### Flows
 
-| Scenario | Store entry over time |
-|---|---|
-| First load | — → `loading` → `success` |
-| Fresh hit | unchanged; no ticket, no pipeline |
-| Stale (SWR) | `success(old)` → `loading(old)` → `success(new)` |
-| Mutation → `invalidateTags` | `success(old, invalidated)` → `loading(old)` → `success(new)` |
-| Invalidate mid-flight | `loading` → `loading, invalidated`; old response ignored; refetch with a new ticket |
-| Abort | `loading` → previous entry restored (or deleted if none) |
-| `clear()` (logout) | all deleted, subscribers notified and kept |
+| Scenario                    | Store entry over time                                                               |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| First load                  | — → `loading` → `success`                                                           |
+| Fresh hit                   | unchanged; no ticket, no pipeline                                                   |
+| Stale (SWR)                 | `success(old)` → `loading(old)` → `success(new)`                                    |
+| Mutation → `invalidateTags` | `success(old, invalidated)` → `loading(old)` → `success(new)`                       |
+| Invalidate mid-flight       | `loading` → `loading, invalidated`; old response ignored; refetch with a new ticket |
+| Abort                       | `loading` → previous entry restored (or deleted if none)                            |
+| `clear()` (logout)          | all deleted, subscribers notified and kept                                          |
 
 ## Packages
 

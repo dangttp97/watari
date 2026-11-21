@@ -34,3 +34,11 @@ test('invalidate trong lúc đang fetch → response cũ bị bỏ qua', () => {
   expect(cache.setCacheUpdateSuccess(ticket, 'stale')).toBe(false);
   expect(cache.getCache('k')?.data).toBeUndefined();
 });
+
+test('invalidateTags reaches a key whose first fetch is still in flight', () => {
+  const { cache } = setup();
+  const ticket = cache.markTicketLoading('k', ['todos']);
+
+  expect(cache.invalidateTags(['todos'])).toEqual(['k']);
+  expect(cache.setCacheUpdateSuccess(ticket, 'stale', ['todos'])).toBe(false);
+});

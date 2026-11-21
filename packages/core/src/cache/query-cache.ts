@@ -22,23 +22,6 @@ export const createQueryCache = (
     return now() - entry.updatedAt < staleTime;
   };
 
-  const markTicketLoading = (key: CacheKey): FetchTicket => {
-    const previous = store.get(key);
-    const generation = ++counter;
-    validTicket.set(key, generation);
-
-    store.set(key, {
-      ...(previous ?? {}), // giữ data, updatedAt, tags cũ → UI không nhấp nháy
-      status: 'loading',
-      error: undefined,
-    });
-
-    return { key, generation, previous };
-  };
-
-  const checkTicketValid = (ticket: FetchTicket) =>
-    validTicket.get(ticket.key) === ticket.generation;
-
   const updateTagIndex = (
     key: CacheKey,
     oldTags: readonly Tag[],
@@ -55,6 +38,31 @@ export const createQueryCache = (
       tagIndex.set(tag, keys);
     }
   };
+
+  const markTicketLoading = (
+    key: CacheKey,
+    tags?: readonly Tag[]
+  ): FetchTicket => {
+    const previous = store.get(key);
+    const generation = ++counter;
+    validTicket.set(key, generation);
+
+    // Register tags as soon as loading starts, so invalidateTags can reach
+    // a key whose very first fetch is still in flight.
+    if (tags) updateTagIndex(key, previous?.tags ?? [], tags);
+
+    store.set(key, {
+      ...(previous ?? {}), // giữ data, updatedAt, tags cũ → UI không nhấp nháy
+      ...(tags ? { tags } : {}),
+      status: 'loading',
+      error: undefined,
+    });
+
+    return { key, generation, previous };
+  };
+
+  const checkTicketValid = (ticket: FetchTicket) =>
+    validTicket.get(ticket.key) === ticket.generation;
 
   const setCacheUpdateSuccess = <T>(
     ticket: FetchTicket,

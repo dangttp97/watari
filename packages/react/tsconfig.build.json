@@ -4,11 +4,6 @@
     "rootDir": "./src",
     "paths": {}
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "lib",
-    "**/__tests__"
-  ]
+  "include": ["src"],
+  "exclude": ["lib", "**/__tests__"]
 }
