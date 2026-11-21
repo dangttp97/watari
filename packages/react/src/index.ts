@@ -1,1 +1,1 @@
-export {};
+export { useQuery } from './useQuery';

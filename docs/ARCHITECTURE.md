@@ -49,38 +49,43 @@ packages/core/src/
 ## Contracts
 
 ```ts
-type Transport  = (request: TransportRequest) => Promise<TransportResponse>;
-type NextFn     = Transport;
-type Middleware = (request: TransportRequest, next: NextFn) => Promise<TransportResponse>;
-type Plugin     = (client: Client) => () => void;   // returns cleanup
+type Transport = (request: TransportRequest) => Promise<TransportResponse>;
+type NextFn = Transport;
+type Middleware = (
+  request: TransportRequest,
+  next: NextFn
+) => Promise<TransportResponse>;
+type Plugin = (client: Client) => () => void; // returns cleanup
 
-interface TransportResponse {         // minimal on purpose: a native transport can implement it
+interface TransportResponse {
+  // minimal on purpose: a native transport can implement it
   status: number;
   statusText: string;
   url: string;
-  headers: RequestHeaders;            // lower-cased keys
+  headers: RequestHeaders; // lower-cased keys
   text(): Promise<string>;
   json<T = unknown>(): Promise<T>;
   arrayBuffer(): Promise<ArrayBuffer>;
 }
 
-interface CacheStore {                // synchronous reads for useSyncExternalStore
+interface CacheStore {
+  // synchronous reads for useSyncExternalStore
   get<T = unknown>(key: string): CacheEntry<T> | undefined;
   set<T = unknown>(key: string, entry: CacheEntry<T>): void;
   delete(key: string): void;
   keys(): string[];
-  subscribe(key: string, callback: () => void): () => void;   // returns unsubscribe
+  subscribe(key: string, callback: () => void): () => void; // returns unsubscribe
 }
 ```
 
 Four extension points — core knows nothing about React Native, Redux or jubako:
 
-| Extension point | Examples |
-|---|---|
-| `transport` | `fetchTransport` (default), `@watari/native` (OkHttp / URLSession) |
-| `middlewares` | `retry`, `auth401`, `logger`, app-specific error mapping |
-| `store` | memory, `@watari/redux`, `@watari/zustand`, `withPersist(store, jubako)` |
-| `plugins` | `refetchOnFocus(AppState)`, `onlineManager(NetInfo)` |
+| Extension point | Examples                                                                 |
+| --------------- | ------------------------------------------------------------------------ |
+| `transport`     | `fetchTransport` (default), `@watari/native` (OkHttp / URLSession)       |
+| `middlewares`   | `retry`, `auth401`, `logger`, app-specific error mapping                 |
+| `store`         | memory, `@watari/redux`, `@watari/zustand`, `withPersist(store, jubako)` |
+| `plugins`       | `refetchOnFocus(AppState)`, `onlineManager(NetInfo)`                     |
 
 ## Transport & pipeline notes
 
@@ -105,12 +110,16 @@ type CacheEntry<T = unknown> = {
   status: 'idle' | 'loading' | 'success' | 'error';
   data?: T;
   error?: unknown;
-  updatedAt?: number;             // last successful fetch
-  tags?: readonly Tag[];          // kept in the entry so the tag index can be rebuilt after hydrate
+  updatedAt?: number; // last successful fetch
+  tags?: readonly Tag[]; // kept in the entry so the tag index can be rebuilt after hydrate
   isInvalidated?: boolean;
 };
 
-type FetchTicket = { key: CacheKey; generation: number; previous: CacheEntry | undefined };
+type FetchTicket = {
+  key: CacheKey;
+  generation: number;
+  previous: CacheEntry | undefined;
+};
 ```
 
 - **Freshness is computed on read** (`now - updatedAt < staleTime`, `status === 'success'`, not invalidated), never stored.
@@ -120,17 +129,26 @@ type FetchTicket = { key: CacheKey; generation: number; previous: CacheEntry | u
 - **Tag index** (`tag → keys`) lives in QueryCache memory, as do valid tickets: runtime bookkeeping, not data.
 - The query layer's dedupe map must also drop the shared promise on invalidate (see `query/inflight.ts`).
 
+### Cache keys
+
+`createCacheKey(name, parts)` → `name:` + stable JSON (object keys sorted recursively, `undefined` dropped, array order kept).
+
+- **Readable JSON keys everywhere** — memory and persisted storage, dev and production alike. No hashing, no dev/prod branching (tests must exercise the same path as production).
+- What goes into the key: `name` (defaults to `METHOD url`), `query`, `body`, and only the headers listed in `keyHeaders` (default none — `Authorization`, request ids and middleware-added headers would break dedupe and caching).
+- Non-serializable bodies (`FormData`, `Blob`, `ArrayBuffer`) get no key: the query bypasses cache and dedupe (dev warning). Mutations never dedupe.
+- **Why not hash keys?** Considered and rejected (Nov 2026): hashing only hides the key while the persisted entry still holds the response data in plain text, and one-way hashes make hydrate unable to restore original keys or rebuild the tag index. Sensitive data is protected by **encrypting the storage** (MMKV `encryptionKey`, jubako `secure` layer). Revisit only if a storage backend imposes a key-length limit — it is a one-function change.
+
 ### Flows
 
-| Scenario | Store entry over time |
-|---|---|
-| First load | — → `loading` → `success` |
-| Fresh hit | unchanged; no ticket, no pipeline |
-| Stale (SWR) | `success(old)` → `loading(old)` → `success(new)` |
-| Mutation → `invalidateTags` | `success(old, invalidated)` → `loading(old)` → `success(new)` |
-| Invalidate mid-flight | `loading` → `loading, invalidated`; old response ignored; refetch with a new ticket |
-| Abort | `loading` → previous entry restored (or deleted if none) |
-| `clear()` (logout) | all deleted, subscribers notified and kept |
+| Scenario                    | Store entry over time                                                               |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| First load                  | — → `loading` → `success`                                                           |
+| Fresh hit                   | unchanged; no ticket, no pipeline                                                   |
+| Stale (SWR)                 | `success(old)` → `loading(old)` → `success(new)`                                    |
+| Mutation → `invalidateTags` | `success(old, invalidated)` → `loading(old)` → `success(new)`                       |
+| Invalidate mid-flight       | `loading` → `loading, invalidated`; old response ignored; refetch with a new ticket |
+| Abort                       | `loading` → previous entry restored (or deleted if none)                            |
+| `clear()` (logout)          | all deleted, subscribers notified and kept                                          |
 
 ## Packages
 

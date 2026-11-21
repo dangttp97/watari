@@ -4,9 +4,9 @@ Decisions taken during review sessions (Nov 2026). `rexios` (the predecessor, wr
 
 ## Branding
 
-| Brand | Scope | Purpose |
-|---|---|---|
-| **watari** (渡り, "crossing") | `@watari/*` | Network: requests cross to the server and back. This repo. |
+| Brand                                    | Scope       | Purpose                                                                  |
+| ---------------------------------------- | ----------- | ------------------------------------------------------------------------ |
+| **watari** (渡り, "crossing")            | `@watari/*` | Network: requests cross to the server and back. This repo.               |
 | **jubako** (重箱, stacked lacquer boxes) | `@jubako/*` | Storage toolkit: each tier of the box is a storage layer. Separate repo. |
 
 - npm orgs `watari` and `jubako` are registered. The unscoped `watari` package on npm belongs to someone else: install instructions must always use the scope.
@@ -16,6 +16,7 @@ Decisions taken during review sessions (Nov 2026). `rexios` (the predecessor, wr
 ## Positioning
 
 Not novel on its own (urql exchanges, Apollo Link, RTK Query `baseQuery`, TanStack Query + ky cover similar ground). The differentiators:
+
 1. **Pluggable cache store** — the cache lives in the store the app already uses (Redux, Zustand, memory).
 2. **React Native first** — focus refetch via `AppState`, offline handling via `NetInfo`, persistence via MMKV/AsyncStorage, as small opt-in plugins.
 

@@ -22,6 +22,9 @@
     "typecheck": "tsc && yarn example:web typecheck",
     "test": "jest --passWithNoTests",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "lint:fix": "eslint \"**/*.{js,ts,tsx}\" --fix",
+    "format": "prettier --write \"**/*.{json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{json,md,yml,yaml}\"",
     "release": "release-it --only-version"
   },
   "devDependencies": {

@@ -1,0 +1,7 @@
+node_modules/
+**/lib/
+**/dist/
+.yarn/
+yarn.lock
+coverage/
+examples/native/.expo/
