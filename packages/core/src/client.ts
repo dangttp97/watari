@@ -3,6 +3,8 @@ import { createQueryCache, type QueryCache } from './cache/query-cache';
 import type { CacheKey, CacheStore, Tag } from './cache/types';
 import { isDev } from './is-dev';
 import type { MutationOptions } from './mutation/types';
+import { createQueryObserver } from './observer/create-query-observer';
+import type { QueryObserver } from './observer/types';
 import { compose } from './pipelines/compose-middlewares';
 import type { Middleware } from './pipelines/types';
 import { buildQueryKey } from './query/build-query-key';
@@ -25,15 +27,8 @@ export type ClientConfig = {
   timeoutMs?: number;
   middlewares?: Middleware[];
   transport?: Transport;
-  /** Where query results are stored. Defaults to an in-memory store. */
   store?: CacheStore;
-  /** Request headers that change the response and must be part of the cache key (e.g. 'accept-language'). */
   keyHeaders?: readonly string[];
-  /**
-   * Enables development warnings. Defaults to auto-detection (`__DEV__` on React Native,
-   * `NODE_ENV !== 'production'` elsewhere). Pass your own flag when the app decides
-   * its environment differently, e.g. `debug: Config.ENV !== 'production'` with react-native-config.
-   */
   debug?: boolean;
 };
 
@@ -42,9 +37,7 @@ export type RequestOptions = Omit<TransportRequest, 'baseUrl'> & {
 };
 
 export type QueryOptions = RequestOptions & {
-  /** Readable cache key prefix. Defaults to `METHOD url`. */
   name?: string;
-  /** How long (ms) a successful result is considered fresh. Default 0. */
   staleTime?: number;
   tags?: readonly Tag[];
 };
@@ -53,6 +46,8 @@ export type Client = {
   request: <T = unknown>(options: RequestOptions) => Promise<T>;
   query: <T = unknown>(options: QueryOptions) => Promise<T>;
   mutate: <T = unknown>(options: MutationOptions) => Promise<T>;
+  observe: <T = unknown>(options: QueryOptions) => QueryObserver<T>;
+  getQueryKey: (options: QueryOptions) => CacheKey | undefined;
   invalidateTags: (tags: readonly Tag[]) => CacheKey[];
   clear: () => void;
   cache: QueryCache;
@@ -67,6 +62,14 @@ export const createClient = (config: ClientConfig = {}): Client => {
   const inflight = createInflight();
   const keyHeaders = (config.keyHeaders ?? []).map((h) => h.toLowerCase());
   const debug = config.debug ?? isDev();
+
+  /** The cache key of a query, or undefined when its body is not serializable. */
+  const getQueryKey = ({ name, ...req }: QueryOptions) =>
+    buildQueryKey(
+      { ...req, headers: { ...config.headers, ...req.headers } },
+      name,
+      keyHeaders
+    );
 
   const request = async <T = unknown>({
     responseType,
@@ -88,11 +91,7 @@ export const createClient = (config: ClientConfig = {}): Client => {
     signal,
     ...req
   }: QueryOptions): Promise<T> => {
-    const key = buildQueryKey(
-      { ...req, headers: { ...config.headers, ...req.headers } },
-      name,
-      keyHeaders
-    );
+    const key = getQueryKey({ name, ...req });
 
     if (key === undefined) {
       if (debug) {
@@ -109,7 +108,7 @@ export const createClient = (config: ClientConfig = {}): Client => {
         key,
         staleTime,
         tags,
-        signal, // the caller's signal: only stops this caller from waiting
+        signal,
         fetcher: (sharedSignal) => request<T>({ ...req, signal: sharedSignal }),
       }
     );
@@ -132,10 +131,37 @@ export const createClient = (config: ClientConfig = {}): Client => {
     return data;
   };
 
+  const observe = <T = unknown>(options: QueryOptions): QueryObserver<T> => {
+    const key = getQueryKey(options);
+    if (key === undefined) {
+      throw new TypeError(
+        `[watari] cannot observe "${options.name ?? `${options.method} ${options.url}`}": its body is not serializable. Use client.request() instead.`
+      );
+    }
+
+    const fetchQuery = (signal: AbortSignal, force?: boolean) =>
+      query<T>({
+        ...options,
+        signal,
+        staleTime: force ? 0 : options.staleTime,
+      });
+
+    return createQueryObserver<T>(cache, key, fetchQuery, options.staleTime);
+  };
+
   const clear = () => {
     inflight.clear();
     cache.clearAll();
   };
 
-  return { request, query, mutate, invalidateTags, clear, cache };
+  return {
+    request,
+    query,
+    mutate,
+    observe,
+    getQueryKey,
+    invalidateTags,
+    clear,
+    cache,
+  };
 };

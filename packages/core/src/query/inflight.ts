@@ -20,8 +20,6 @@ export const createInflight = () => {
     const leave = () => {
       flight.waiters--;
       if (flight.waiters === 0 && !flight.settled) {
-        // Nobody waits anymore: drop it from the map first so a new join starts a fresh request,
-        // then abort the underlying request.
         if (flights.get(key) === flight) flights.delete(key);
         flight.controller.abort();
       }
@@ -47,7 +45,6 @@ export const createInflight = () => {
     });
   };
 
-  /** Join the in-flight request for `key`, or start one with `start(signal)`. */
   const join = <T>(
     key: CacheKey,
     start: (signal: AbortSignal) => Promise<T>,
@@ -66,8 +63,6 @@ export const createInflight = () => {
         created.settled = true;
         if (flights.get(key) === created) flights.delete(key);
       });
-      // Callers receive the error through waitFor; this only prevents an
-      // "unhandled rejection" when every caller has already left.
       created.promise.catch(() => {});
       flights.set(key, created);
       flight = created;
@@ -75,7 +70,6 @@ export const createInflight = () => {
     return waitFor<T>(key, flight, signal);
   };
 
-  /** Forget the shared promise (after invalidate): the next join starts a new request. */
   const forget = (key: CacheKey) => {
     flights.delete(key);
   };

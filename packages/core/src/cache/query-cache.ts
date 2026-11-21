@@ -89,7 +89,8 @@ export const createQueryCache = (
 
     const current = store.get(ticket.key);
     store.set(ticket.key, {
-      ...(current ?? {}), // vẫn giữ data cũ: UI có thể hiện "data cũ + báo lỗi"
+      ...(current ?? {}),
+      invalidated: false,
       status: 'error',
       error,
     });
@@ -137,5 +138,6 @@ export const createQueryCache = (
     invalidateTags,
     restoreCache,
     clearAll,
+    subscribe: store.subscribe,
   };
 };
