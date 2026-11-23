@@ -14,6 +14,7 @@
   ],
   "packageManager": "yarn@4.11.0",
   "scripts": {
+    "prepack": "bob build",
     "example:native": "yarn workspace watari-example-native",
     "example:web": "yarn workspace watari-example-web",
     "build": "yarn workspaces foreach -Apt --include \"@watari/*\" run build",
