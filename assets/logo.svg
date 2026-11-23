@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="watari">
+  <rect width="128" height="128" rx="28" fill="#EFE8D6"/>
+  <g transform="translate(0 -8)">
+    <ellipse cx="64" cy="102" rx="46" ry="9" fill="#9CC3D9"/>
+    <path d="M40 104q8-3 16 0M72 104q8-3 16 0" fill="none" stroke="#EFE8D6" stroke-width="2" stroke-linecap="round"/>
+    <g fill="#F8F3E6" stroke="#6B4A2F" stroke-width="3">
+      <rect x="16" y="58" width="22" height="40"/>
+      <rect x="90" y="58" width="22" height="40"/>
+    </g>
+    <path d="M8 62l19-18 19 18zM82 62l19-18 19 18z" fill="#2F5D7C"/>
+    <g stroke="#6B4A2F" stroke-width="4" stroke-linecap="round">
+      <path d="M50 54v32M64 52v31M78 54v32"/>
+    </g>
+    <path d="M38 90q26-14 52 0" fill="none" stroke="#6B4A2F" stroke-width="6" stroke-linecap="round"/>
+    <path d="M38 76q26-14 52 0" fill="none" stroke="#6B4A2F" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M34 54q30-14 60 0l-2 6q-28-12-56 0z" fill="#3B7096"/>
+  </g>
+</svg>
